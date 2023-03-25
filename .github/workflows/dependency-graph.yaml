@@ -22,14 +22,16 @@ jobs:
           # Get list of modified Markdown files in PR
           files=( ./*.md )
 
-          # Loop through each modified file
-          for file in "${files[@]}"; do
+          # Concatenate dependencies for all Markdown files
+          all_deps=$(for file in "${files[@]}"; do
             # Get the list of dependencies
-            dependencies=$(grep -o "depends:[0-9]+" $file | sed -e 's/depends://' | tr -d '[:space:]')
+            dependencies=$(grep -o "depends:[0-9]\+" "$file" | sed -e 's/depends://' | tr -d '[:space:]')
+            echo "$dependencies"
+          done)
 
-            # Generate the dependency graph and save as a PNG image
-            dot -Tpng -o "${file%%.md}.png" <(echo "$dependencies")
-          done
+          # Generate the dependency graph and save as a PNG image
+          dot -Tpng -o dependency.png <(echo "$all_deps")
+
           
       - name: Upload dependency graph images
         uses: actions/upload-artifact@v2
