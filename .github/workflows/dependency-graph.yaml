@@ -41,7 +41,7 @@ jobs:
             const branchName = `pr-${process.env.GITHUB_REF.split("/")[2]}`;
             const fs = require('fs');
             const { GitHub } = require('@actions/github');
-            const octokit = new GitHub(process.env.WORKFLOW_TOKEN);
+            const octokit = github.getOctokit(token);
             fs.writeFileSync('dependencies.png', fs.readFileSync('dependencies.png'));
 
             github.pulls.get({
