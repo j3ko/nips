@@ -15,6 +15,9 @@ jobs:
     - name: Setup Graphviz
       run: sudo apt-get install -y graphviz
 
+    - name: Install pydeps
+      run: pip install pydeps
+
     - name: Generate dependencies diagram
       run: |
         pydeps ./ --exclude=tests --ignore=setup.py --max-bacon=2 --file-output=dependencies.dot
