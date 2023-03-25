@@ -43,6 +43,8 @@ jobs:
             const gh = require('@actions/github');
             const octokit = gh.getOctokit(process.env.GITHUB_TOKEN);
             fs.writeFileSync('dependencies.png', fs.readFileSync('dependencies.png'));
+            console.log('octokit:', octokit);
+            console.log('octokit.pulls:', octokit.pulls);
 
             octokit.pulls.get({
               owner: context.repo.owner,
