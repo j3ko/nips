@@ -40,7 +40,7 @@ jobs:
           script: |
             const branchName = `pr-${process.env.GITHUB_REF.split("/")[2]}`;
             const fs = require('fs');
-            const { GitHub, context } = require('@actions/github');
+            const { GitHub } = require('@actions/github');
             const octokit = new GitHub(process.env.WORKFLOW_TOKEN);
             fs.writeFileSync('dependencies.png', fs.readFileSync('dependencies.png'));
 
