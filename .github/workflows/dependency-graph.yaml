@@ -30,8 +30,29 @@ jobs:
           # Output the dependency graph in the dot format
           echo "digraph nips { $dependencies }" | dot -Tpng -o dependencies.png
 
-      - name: Upload dependency graph
-        uses: actions/upload-artifact@v2
-        with:
-          name: dependency-graph
-          path: dependencies.png
+          # Get the pull request number
+          pr_number=$(echo $GITHUB_REF | sed 's|.*/||')
+
+          # Set the Git config variables
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
+
+          # Checkout the branch associated with the pull request
+          git fetch origin pull/$pr_number/head:pr-$pr_number
+          git checkout pr-$pr_number
+
+          # Copy the dependency graph to the root of the repository
+          cp dependencies.png ../
+
+          # Add the new file to the index
+          git add ../dependencies.png
+
+          # Create a new commit and push it to the pull request branch
+          git commit -m "Update dependency graph" -a
+          git push origin HEAD
+
+      - name: Delete local changes
+        run: |
+          rm -f dependencies.png
+          git reset --hard HEAD^
+          git clean -f -d
