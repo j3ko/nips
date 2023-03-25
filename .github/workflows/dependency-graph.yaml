@@ -31,12 +31,39 @@ jobs:
           echo "digraph nips { $dependencies }" | dot -Tpng -o dependencies.png
 
       - name: Push updated dependency graph
-        env:
-          GITHUB_TOKEN: ${{ secrets.WORKFLOW_TOKEN }}
-        run: |
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git config user.name "github-actions[bot]"
-          git checkout -B pr-branch
-          git add dependencies.png
-          git commit -m "chore: update dependency graph"
-          git push -f origin pr-branch
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{ secrets.WORKFLOW_TOKEN }}
+          script: |
+            const branchName = `pr-${process.env.GITHUB_REF.split("/")[2]}`;
+            const fs = require('fs');
+            fs.writeFileSync('dependencies.png', fs.readFileSync('dependencies.png'));
+
+            const { context, GitHub } = require('@actions/github');
+            const octokit = new GitHub(process.env.WORKFLOW_TOKEN);
+            const { data: pull } = await octokit.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number
+            });
+            const headSha = pull.head.sha;
+            await octokit.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `refs/heads/${branchName}`,
+              sha: headSha
+            });
+            await octokit.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: context.payload.pull_request.number,
+              name: 'dependencies.png',
+              data: fs.readFileSync('dependencies.png')
+            });
+            await octokit.pulls.updateBranch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              expected_head_sha: headSha,
+              body: 'chore: update dependency graph',
+            });
