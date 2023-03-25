@@ -19,12 +19,6 @@ jobs:
       - name: Install Dependencies
         run: npm install @actions/github
 
-      - name: Delete existing branch
-        uses: peter-evans/delete-branch@v2.0.0
-        with:
-          branch: pr-${{ github.event.pull_request.number }}
-          token: ${{ secrets.WORKFLOW_TOKEN }}
-
       - name: Generate dependency graph
         run: |
           # Get list of modified Markdown files in PR
