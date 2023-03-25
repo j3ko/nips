@@ -1,0 +1,38 @@
+name: Generate Dependency Graph
+
+on:
+  pull_request:
+  
+env:
+  GITHUB_TOKEN: ${{ secrets.WORKFLOW_TOKEN }}
+  
+jobs:
+  generate_dependency_graph:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install Graphviz
+        run: sudo apt-get update && sudo apt-get install -y graphviz
+
+      - name: Generate dependency graph
+        run: |
+          # Get list of modified Markdown files in PR
+          files=( ./*.md )
+          # Concatenate dependencies for all Markdown files
+          dependencies=""
+          for file in "${files[@]}"; do
+            # Get the list of dependencies
+            deps=$(grep -o 'depends:[0-9]\+' "$file" | sort | uniq | sed "s/depends://" | awk -v f="${file/.\//NIP-}" '{sub(/\.md/, "", f); print "\"" f "\" -> \"NIP-" $1 "\""}')
+            # Append the dependencies to the variable
+            dependencies="$dependencies $deps"
+          done
+          # Output the dependency graph in the dot format
+          echo "digraph nips { $dependencies }" | dot -Tpng -o dependencies.png
+
+      - name: Upload dependency graph
+        uses: actions/upload-artifact@v2
+        with:
+          name: dependency-graph
+          path: dependencies.png
