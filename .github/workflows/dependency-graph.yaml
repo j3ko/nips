@@ -34,41 +34,53 @@ jobs:
           # Output the dependency graph in the dot format
           echo "digraph nips { $dependencies }" | dot -Tpng -o dependencies.png
 
-      - name: Create PR branch and upload dependency graph
+      - name: Commit dependency graph to PR branch
         uses: actions/github-script@v4
         with:
           script: |
-            const branchName = `pr-${process.env.GITHUB_REF.split("/")[2]}`;
-            const fs = require('fs');
             const gh = require('@actions/github');
             const octokit = gh.getOctokit(process.env.GITHUB_TOKEN);
-            fs.writeFileSync('dependencies.png', fs.readFileSync('dependencies.png'));
-            octokit.rest.pulls.get({
+            const branchName = `pr-${process.env.GITHUB_REF.split("/")[2]}`;
+            const file = 'dependencies.png';
+            const commitMsg = 'chore: update dependency graph';
+            const headSha = context.payload.pull_request.head.sha;
+            
+            octokit.rest.git.createRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number
-            }).then(({ data: pull }) => {
-              const headSha = pull.head.sha;
-              return octokit.rest.git.createRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: `refs/heads/${branchName}`,
-                sha: headSha
-              });
+              ref: `refs/heads/${branchName}`,
+              sha: headSha
             }).then(() => {
               return octokit.rest.repos.uploadReleaseAsset({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 release_id: context.payload.pull_request.number,
-                name: 'dependencies.png',
-                data: fs.readFileSync('dependencies.png')
+                name: file,
+                data: Buffer.from(require('fs').readFileSync(file)).toString('base64'),
+                contentType: 'image/png'
               });
             }).then(() => {
-              return octokit.rest.pulls.updateBranch({
+              return octokit.rest.git.createCommit({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                pull_number: context.payload.pull_request.number,
-                expected_head_sha: headSha,
-                body: 'chore: update dependency graph',
+                message: commitMsg,
+                tree: headSha,
+                parents: [headSha],
+                author: {
+                  name: 'GitHub Actions',
+                  email: 'actions@github.com'
+                },
+                committer: {
+                  name: 'GitHub Actions',
+                  email: 'actions@github.com'
+                }
+              });
+            }).then(({ data: commit }) => {
+              return octokit.rest.git.updateRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `heads/${branchName}`,
+                sha: commit.sha,
+                force: true
               });
             });
