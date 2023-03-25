@@ -41,24 +41,24 @@ jobs:
             const branchName = `pr-${process.env.GITHUB_REF.split("/")[2]}`;
             const fs = require('fs');
             const { GitHub } = require('@actions/github');
-            const octokit = new GitHub(process.env.WORKFLOW_TOKEN);
+            const gh = new GitHub(process.env.WORKFLOW_TOKEN);
             fs.writeFileSync('dependencies.png', fs.readFileSync('dependencies.png'));
 
-            const octokit = new github.GitHub(process.env.WORKFLOW_TOKEN);
+            const gh = new github.GitHub(process.env.WORKFLOW_TOKEN);
             github.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.payload.pull_request.number
             }).then(({ data: pull }) => {
               const headSha = pull.head.sha;
-              return octokit.git.createRef({
+              return gh.git.createRef({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 ref: `refs/heads/${branchName}`,
                 sha: headSha
               });
             }).then(() => {
-              return octokit.rest.repos.uploadReleaseAsset({
+              return gh.rest.repos.uploadReleaseAsset({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 release_id: context.payload.pull_request.number,
@@ -66,7 +66,7 @@ jobs:
                 data: fs.readFileSync('dependencies.png')
               });
             }).then(() => {
-              return octokit.pulls.updateBranch({
+              return gh.pulls.updateBranch({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: context.payload.pull_request.number,
