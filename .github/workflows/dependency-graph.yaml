@@ -21,10 +21,10 @@ jobs:
           # Concatenate dependencies for all Markdown files
           all_deps=$(for file in "${files[@]}"; do
               # Output filename being processed
-              echo "Processing $file"
+              # echo "Processing $file"
               # Get the list of dependencies
               dependencies=$(grep -o 'depends:[0-9]\+' $file | sort | uniq | sed "s/depends://" | awk -v f="${file/.\//NIP-}" '{sub(/\.md/, "", f); print f " -> NIP-" $1}')
-              echo "$dependencies"
+              # echo "$dependencies"
           done | awk 'NF' | sort -u)
 
           # Generate the dependency graph and save as a PNG image
