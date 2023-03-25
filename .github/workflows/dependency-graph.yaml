@@ -1,64 +1,42 @@
-name: generate-dependencies-diagram
+name: Generate dependency graph
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize]
+    types: [opened, synchronize]
 
 jobs:
-  build:
+  generate-dependency-graph:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Setup Graphviz
-      run: sudo apt-get install -y graphviz
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install graphviz
 
-    - name: Install pydeps
-      run: pip install pydeps
+      - name: Generate dependency graph
+        run: |
+          # Get list of modified Markdown files in PR
+          files=$(git diff --name-only HEAD~1 ${{ github.event.pull_request.head.sha }} | grep -E '\.md$')
 
-    - name: Generate dependency graph
-      run: pydeps ./ --exclude=tests --max-bacon=2 --file-output=dependencies.dot
-      env:
-        PYTHONPATH: './src'
-      working-directory: './src'
+          # Loop through each modified file
+          for file in $files; do
+            # Check if the file contains a 'depends:' section
+            if grep -q "^## depends:" "$file"; then
+              # Get the list of dependencies
+              dependencies=$(grep -o "depends:[0-9]+" $file | sed -e 's/depends://' | tr -d '[:space:]')
 
-    - name: Upload diagram artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: dependencies-diagram
-        path: dist/dependencies.png
+              # Generate the dependency graph and save as a PNG image
+              dot -Tpng -o "${file%%.md}.png" <(echo "$dependencies")
+            fi
+          done
 
-    - name: Comment on PR with dependencies diagram
-      uses: actions/github-script@v4
-      with:
-        github-token: ${{secrets.GITHUB_TOKEN}}
-        script: |
-          const { data } = await context.github.pulls.get({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            pull_number: context.payload.pull_request.number
-          });
-          const commentBody = `![Dependencies diagram](https://github.com/${context.repo.owner}/${context.repo.repo}/raw/${context.sha}/dist/dependencies.png?raw=true)`;
-          const { data: comments } = await context.github.issues.listComments({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: context.payload.pull_request.number
-          });
-          const existingComment = comments.find((comment) => comment.user.login === 'github-actions[bot]' && comment.body.startsWith('![Dependencies diagram]('));
-          if (existingComment) {
-            await context.github.issues.updateComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: existingComment.id,
-              body: commentBody
-            });
-          } else {
-            await context.github.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.payload.pull_request.number,
-              body: commentBody
-            });
-          }
+      - name: Upload dependency graph images
+        uses: actions/upload-artifact@v2
+        with:
+          name: dependency-graphs
+          path: |
+            $(find . -maxdepth 1 -name '*.png')
