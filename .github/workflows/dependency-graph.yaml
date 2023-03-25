@@ -39,31 +39,31 @@ jobs:
             const fs = require('fs');
             fs.writeFileSync('dependencies.png', fs.readFileSync('dependencies.png'));
 
-            const { context, GitHub } = require('@actions/github');
+            const { job_context, GitHub } = require('@actions/github');
             const octokit = new GitHub(process.env.WORKFLOW_TOKEN);
             const { data: pull } = await octokit.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number
+              owner: job_context.repo.owner,
+              repo: job_context.repo.repo,
+              pull_number: job_context.payload.pull_request.number
             });
             const headSha = pull.head.sha;
             await octokit.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
+              owner: job_context.repo.owner,
+              repo: job_context.repo.repo,
               ref: `refs/heads/${branchName}`,
               sha: headSha
             });
             await octokit.rest.repos.uploadReleaseAsset({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: context.payload.pull_request.number,
+              owner: job_context.repo.owner,
+              repo: job_context.repo.repo,
+              release_id: job_context.payload.pull_request.number,
               name: 'dependencies.png',
               data: fs.readFileSync('dependencies.png')
             });
             await octokit.pulls.updateBranch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number,
+              owner: job_context.repo.owner,
+              repo: job_context.repo.repo,
+              pull_number: job_context.payload.pull_request.number,
               expected_head_sha: headSha,
               body: 'chore: update dependency graph',
             });
