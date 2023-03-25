@@ -18,11 +18,11 @@ jobs:
     - name: Install pydeps
       run: pip install pydeps
 
-    - name: Generate dependencies diagram
-      run: |
-        pydeps ./ --exclude=tests --ignore=setup.py --max-bacon=2 --file-output=dependencies.dot
-        dot -Tpng -o./dist/dependencies.png ./dependencies.dot
-      working-directory: ${{github.workspace}}
+    - name: Generate dependency graph
+      run: pydeps ./ --exclude=tests --max-bacon=2 --file-output=dependencies.dot
+      env:
+        PYTHONPATH: './src'
+      working-directory: './src'
 
     - name: Upload diagram artifact
       uses: actions/upload-artifact@v2
