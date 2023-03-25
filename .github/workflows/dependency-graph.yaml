@@ -71,4 +71,5 @@ jobs:
                 pull_number: context.payload.pull_request.number,
                 expected_head_sha: headSha,
                 body: 'chore: update dependency graph',
-             
+              });
+            });
