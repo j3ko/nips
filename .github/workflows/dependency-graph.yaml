@@ -2,7 +2,10 @@ name: Generate Dependency Graph
 
 on:
   pull_request:
-
+  
+env:
+  GITHUB_TOKEN: ${{ secrets.WORKFLOW_TOKEN }}
+  
 jobs:
   generate_dependency_graph:
     runs-on: ubuntu-latest
@@ -13,11 +16,13 @@ jobs:
       - name: Install Graphviz
         run: sudo apt-get update && sudo apt-get install -y graphviz
 
+      - name: Install Dependencies
+        run: npm install @actions/github
+
       - name: Generate dependency graph
         run: |
           # Get list of modified Markdown files in PR
           files=( ./*.md )
-
           # Concatenate dependencies for all Markdown files
           dependencies=""
           for file in "${files[@]}"; do
@@ -26,44 +31,42 @@ jobs:
             # Append the dependencies to the variable
             dependencies="$dependencies $deps"
           done
-
           # Output the dependency graph in the dot format
           echo "digraph nips { $dependencies }" | dot -Tpng -o dependencies.png
 
       - name: Push updated dependency graph
         uses: actions/github-script@v4
         with:
-          github-token: ${{ secrets.WORKFLOW_TOKEN }}
           script: |
             const branchName = `pr-${process.env.GITHUB_REF.split("/")[2]}`;
             const fs = require('fs');
             fs.writeFileSync('dependencies.png', fs.readFileSync('dependencies.png'));
 
-            const { job_context, GitHub } = require('@actions/github');
-            const octokit = new GitHub(process.env.WORKFLOW_TOKEN);
+            const { github } = require('@actions/github');
+            const octokit = new github.GitHub(process.env.WORKFLOW_TOKEN);
             const { data: pull } = await octokit.pulls.get({
-              owner: job_context.repo.owner,
-              repo: job_context.repo.repo,
-              pull_number: job_context.payload.pull_request.number
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number
             });
             const headSha = pull.head.sha;
             await octokit.git.createRef({
-              owner: job_context.repo.owner,
-              repo: job_context.repo.repo,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
               ref: `refs/heads/${branchName}`,
               sha: headSha
             });
             await octokit.rest.repos.uploadReleaseAsset({
-              owner: job_context.repo.owner,
-              repo: job_context.repo.repo,
-              release_id: job_context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: context.payload.pull_request.number,
               name: 'dependencies.png',
               data: fs.readFileSync('dependencies.png')
             });
             await octokit.pulls.updateBranch({
-              owner: job_context.repo.owner,
-              repo: job_context.repo.repo,
-              pull_number: job_context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
               expected_head_sha: headSha,
               body: 'chore: update dependency graph',
             });
