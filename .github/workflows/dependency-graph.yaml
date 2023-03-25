@@ -46,14 +46,14 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
-          const { data } = await github.pulls.listFiles({
+          const { data: fileListData } = await github.pulls.listFiles({
             owner: context.repo.owner,
             repo: context.repo.repo,
             pull_number: context.payload.pull_request.number
           });
-          const fileExists = data.find(f => f.filename === 'dependencies.png');
+          const fileExists = fileListData.find(f => f.filename === 'dependencies.png');
           if (fileExists) {
-            const { data } = await github.repos.uploadReleaseAsset({
+            const { data: uploadData } = await github.repos.uploadReleaseAsset({
               owner: context.repo.owner,
               repo: context.repo.repo,
               release_id: context.payload.pull_request.number,
@@ -61,7 +61,7 @@ jobs:
               data: fs.readFileSync('./dist/dependencies.png')
             });
           } else {
-            const { data } = await github.pulls.createReview({
+            const { data: reviewData } = await github.pulls.createReview({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.payload.pull_request.number,
@@ -73,6 +73,11 @@ jobs:
                 body: 'Dependency tree image',
               }],
             });
-            const { data } = await github.repos.uploadReleaseAsset({
+            const { data: uploadData } = await github.repos.uploadReleaseAsset({
               owner: context.repo.owner,
               repo: context.repo.repo,
+              release_id: context.payload.pull_request.number,
+              name: 'dependencies.png',
+              data: fs.readFileSync('./dist/dependencies.png')
+            });
+          });
