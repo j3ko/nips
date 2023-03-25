@@ -2,7 +2,7 @@ name: Generate NIP Dependency Tree
 
 on:
   pull_request:
-    types: [opened]
+    types: [opened, synchronize]
 
 jobs:
   build:
@@ -75,8 +75,3 @@ jobs:
             const { data } = await github.repos.uploadReleaseAsset({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              release_id: context.payload.pull_request.number,
-              name: 'dependencies.png',
-              data: fs.readFileSync('./dist/dependencies.png')
-            });
-          }
