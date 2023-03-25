@@ -21,12 +21,14 @@ jobs:
           # Concatenate dependencies for all Markdown files
           all_deps=$(for file in "${files[@]}"; do
             # Get the list of dependencies
-            dependencies=$(grep -o "depends:[0-9]\+" "$file" | sed -e 's/depends:/NIP-/' -e 's/[[:space:]]//g')
+            dependencies=$(grep -o "depends:[0-9]\+" "$file" | sed -e 's/depends://' -e 's/^/NIP-/' | tr -d '[:space:]' | awk '{print $1 " -> " $2}')
+            
             echo "$dependencies"
           done)
 
           # Generate the dependency graph and save as a PNG image
-          echo "$all_deps" | dot -Tpng -Gdpi=300 -o dependencies.png
+          echo "$all_deps" | dot -Tpng -o dependencies.png
+
 
       - name: Upload dependency graph
         uses: actions/upload-artifact@v2
