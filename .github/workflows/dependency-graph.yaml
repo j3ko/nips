@@ -34,42 +34,42 @@ jobs:
           # Output the dependency graph in the dot format
           echo "digraph nips { $dependencies }" | dot -Tpng -o dependencies.png
 
-      - name: Create/update pull request branch
-        run: |
-          const branchName = `pr-${process.env.GITHUB_REF.split("/")[2]}`;
-          const fs = require('fs');
-          const { GitHub } = require('@actions/github');
-          const github = new GitHub(process.env.WORKFLOW_TOKEN);
-          const context = JSON.parse(process.env.CONTEXT);
-          const octokit = github.getOctokit(process.env.WORKFLOW_TOKEN);
-          const headSha = context.payload.pull_request.head.sha;
-          fs.writeFileSync('dependencies.png', fs.readFileSync('dependencies.png'));
+      - name: Create PR branch and upload dependency graph
+        uses: actions/github-script@v4
+        with:
+          script: |
+            const branchName = `pr-${process.env.GITHUB_REF.split("/")[2]}`;
+            const fs = require('fs');
+            const { GitHub } = require('@actions/github');
+            const octokit = github.getOctokit(process.env.WORKFLOW_TOKEN);
+            fs.writeFileSync('dependencies.png', fs.readFileSync('dependencies.png'));
 
-          github.pulls.get({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            pull_number: context.payload.pull_request.number
-          }).then(({ data: pull }) => {
-            return octokit.git.createRef({
+            github.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: `refs/heads/${branchName}`,
-              sha: headSha
+              pull_number: context.payload.pull_request.number
+            }).then(({ data: pull }) => {
+              const headSha = pull.head.sha;
+              return octokit.git.createRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `refs/heads/${branchName}`,
+                sha: headSha
+              });
+            }).then(() => {
+              return octokit.rest.repos.uploadReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: context.payload.pull_request.number,
+                name: 'dependencies.png',
+                data: fs.readFileSync('dependencies.png')
+              });
+            }).then(() => {
+              return octokit.pulls.updateBranch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number,
+                expected_head_sha: headSha,
+                body: 'chore: update dependency graph',
+              });
             });
-          }).then(() => {
-            return octokit.rest.repos.uploadReleaseAsset({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: context.payload.pull_request.number,
-              name: 'dependencies.png',
-              data: fs.readFileSync('dependencies.png')
-            });
-          }).then(() => {
-            return octokit.pulls.updateBranch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number,
-              expected_head_sha: headSha,
-              body: 'chore: update dependency graph',
-            });
-          });
