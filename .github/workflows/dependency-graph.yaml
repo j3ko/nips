@@ -16,9 +16,6 @@ jobs:
       - name: Install Graphviz
         run: sudo apt-get update && sudo apt-get install -y graphviz
 
-      - name: Install Dependencies
-        run: npm install @actions/github
-
       - name: Generate dependency graph
         run: |
           # Get list of modified Markdown files in PR
