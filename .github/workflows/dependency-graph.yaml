@@ -29,8 +29,8 @@ jobs:
               # Get the list of dependencies
               dependencies=$(grep -o "depends:[0-9]+" $file | sed -e 's/depends://' | tr -d '[:space:]')
 
-              # Generate the dependency graph and save as a PNG image
-              dot -Tpng -o "dependencies.png" <(echo "$dependencies")
+              # Output the dependencies to the command line
+              echo "Dependencies for $file: $dependencies"
             fi
           done
           
