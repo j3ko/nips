@@ -1,4 +1,4 @@
-name: Generate NIP Dependency Tree
+name: generate-dependencies-diagram
 
 on:
   pull_request:
@@ -7,77 +7,55 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
-    - name: Setup Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '14.x'
-    - name: Install dependencies
+
+    - name: Setup Graphviz
+      run: sudo apt-get install -y graphviz
+
+    - name: Generate dependencies diagram
       run: |
-        npm install -g marked
-        npm install -g graphviz-cli
-        sudo apt-get update && sudo apt-get install -y graphviz
-    - name: Generate DOT file
-      run: |
-        mkdir -p ./dist
-        touch ./dist/nips.txt
-        for nip in $(ls ./NIPs/*.md); do
-          nip_num=$(basename $nip | cut -d'.' -f1)
-          title=$(head -n 1 $nip | cut -d':' -f2 | xargs)
-          type=$(grep -oP '(?<=Type: ).*' $nip | xargs)
-          depends=$(grep -oP '(?<=depends: ).*' $nip | sed 's/,/;/g' | xargs)
-          echo "$nip_num \"$title\" \"$type\" \"$depends\"" >> ./dist/nips.txt
-        done
-        cat <<EOF >./dependencies.dot
-        digraph {
-          graph [rankdir="LR"];
-          node [style=filled];
-          $(awk '{print "NIP_"$1" [label=\""$2"\\nType: "$3"\", shape=box];"}' ./dist/nips.txt)
-          $(awk '{if($4!="") print "NIP_"$1" -> {"$4"};"}' ./dist/nips.txt | sed 's/;/ -> /g')
-        }
-        EOF
-    - name: Render PNG image
-      run: |
+        pydeps ./ --exclude=tests --ignore=setup.py --max-bacon=2 --file-output=dependencies.dot
         dot -Tpng -o./dist/dependencies.png ./dependencies.dot
-    - name: Add PNG file to PR
+      working-directory: ${{github.workspace}}
+
+    - name: Upload diagram artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: dependencies-diagram
+        path: dist/dependencies.png
+
+    - name: Comment on PR with dependencies diagram
       uses: actions/github-script@v4
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{secrets.GITHUB_TOKEN}}
         script: |
-          const { data: fileListData } = await github.pulls.listFiles({
+          const { data } = await context.github.pulls.get({
             owner: context.repo.owner,
             repo: context.repo.repo,
             pull_number: context.payload.pull_request.number
           });
-          const fileExists = fileListData.find(f => f.filename === 'dependencies.png');
-          if (fileExists) {
-            const { data: uploadData } = await github.repos.uploadReleaseAsset({
+          const commentBody = `![Dependencies diagram](https://github.com/${context.repo.owner}/${context.repo.repo}/raw/${context.sha}/dist/dependencies.png?raw=true)`;
+          const { data: comments } = await context.github.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.payload.pull_request.number
+          });
+          const existingComment = comments.find((comment) => comment.user.login === 'github-actions[bot]' && comment.body.startsWith('![Dependencies diagram]('));
+          if (existingComment) {
+            await context.github.issues.updateComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              release_id: context.payload.pull_request.number,
-              name: 'dependencies.png',
-              data: fs.readFileSync('./dist/dependencies.png')
+              comment_id: existingComment.id,
+              body: commentBody
             });
           } else {
-            const { data: reviewData } = await github.pulls.createReview({
+            await context.github.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number,
-              body: 'Adding dependency tree image',
-              event: 'COMMENT',
-              comments: [{
-                path: 'dependencies.png',
-                position: 0,
-                body: 'Dependency tree image',
-              }],
+              issue_number: context.payload.pull_request.number,
+              body: commentBody
             });
-            const { data: uploadData } = await github.repos.uploadReleaseAsset({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: context.payload.pull_request.number,
-              name: 'dependencies.png',
-              data: fs.readFileSync('./dist/dependencies.png')
-            });
-          });
+          }
