@@ -28,7 +28,7 @@ jobs:
           done
 
           # Output the dependency graph in the dot format
-          echo "digraph nips { $dependencies }"
+          echo "digraph nips { $dependencies }" | dot -Tpng -o dependencies.png
 
       - name: Upload dependency graph
         uses: actions/upload-artifact@v2
