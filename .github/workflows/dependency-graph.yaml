@@ -30,11 +30,13 @@ jobs:
           # Output the dependency graph in the dot format
           echo "digraph nips { $dependencies }" | dot -Tpng -o dependencies.png
 
-      - name: Commit and push changes
+      - name: Push updated dependency graph
+        env:
+          GITHUB_TOKEN: ${{ secrets.WORKFLOW_TOKEN }}
         run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@users.noreply.github.com"
-          git checkout -B ${{ github.head_ref }}
-          git add -f dependencies.png
-          git commit -m "Update dependency graph"
-          git push --force-with-lease origin ${{ github.head_ref }}
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git checkout -B pr-branch
+          git add dependencies.png
+          git commit -m "chore: update dependency graph"
+          git push -f origin pr-branch
