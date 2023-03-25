@@ -20,7 +20,7 @@ jobs:
       - name: Generate dependency graph
         run: |
           # Get list of modified Markdown files in PR
-          files=$(git diff --name-only HEAD~1 ${{ github.event.pull_request.head.sha }} | grep -E '\.md$')
+          files=$(git diff --name-only ${GITHUB_BASE_REF}..${GITHUB_HEAD_REF} -- '*.md')
 
           # Loop through each modified file
           for file in $files; do
