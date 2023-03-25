@@ -44,7 +44,7 @@ jobs:
             const octokit = gh.getOctokit(process.env.GITHUB_TOKEN);
             fs.writeFileSync('dependencies.png', fs.readFileSync('dependencies.png'));
 
-            github.pulls.get({
+            octokit.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.payload.pull_request.number
@@ -71,5 +71,4 @@ jobs:
                 pull_number: context.payload.pull_request.number,
                 expected_head_sha: headSha,
                 body: 'chore: update dependency graph',
-              });
-            });
+             
