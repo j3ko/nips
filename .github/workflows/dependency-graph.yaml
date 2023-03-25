@@ -17,10 +17,6 @@ jobs:
         run: |
           # Get list of modified Markdown files in PR
           files=( ./*.md )
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "No markdown files found."
-            exit 0
-          fi
 
           # Concatenate dependencies for all Markdown files
           all_deps=$(for file in "${files[@]}"; do
@@ -30,7 +26,7 @@ jobs:
           done)
 
           # Generate the dependency graph and save as a PNG image
-          echo "$all_deps" | dot -Tpng -o dependencies.png
+          echo "$all_deps" | dot -Tpng -Gdpi=300 -o dependencies.png -
 
       - name: Upload dependency graph
         uses: actions/upload-artifact@v2
