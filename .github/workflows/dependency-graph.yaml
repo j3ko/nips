@@ -30,13 +30,13 @@ jobs:
               dependencies=$(grep -o "depends:[0-9]+" $file | sed -e 's/depends://' | tr -d '[:space:]')
 
               # Generate the dependency graph and save as a PNG image
-              dot -Tpng -o "${file%%.md}.png" <(echo "$dependencies")
+              dot -Tpng -o "dependencies.png" <(echo "$dependencies")
             fi
           done
-
+          
       - name: Upload dependency graph images
         uses: actions/upload-artifact@v2
         with:
           name: dependency-graphs
-          path: |
-            $(find . -maxdepth 1 -name '*.png')
+          path: dependencies.png
+
