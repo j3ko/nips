@@ -1,21 +1,17 @@
-name: Generate dependency graph
+name: Generate Dependency Graph
 
 on:
   pull_request:
-    types: [opened, synchronize]
 
 jobs:
-  generate-dependency-graph:
+  generate_dependency_graph:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get -y install graphviz
+      - name: Install Graphviz
+        run: sudo apt-get update && sudo apt-get install -y graphviz
 
       - name: Generate dependency graph
         run: |
@@ -30,11 +26,10 @@ jobs:
           done)
 
           # Generate the dependency graph and save as a PNG image
-          echo "$all_deps" | dot -Tpng -o dependencies.png
-          
-      - name: Upload dependency graph images
+          dot -Tpng -o dependencies.png -Gdpi=150 <(echo "$all_deps")
+
+      - name: Upload dependency graph
         uses: actions/upload-artifact@v2
         with:
-          name: dependency-graphs
+          name: dependency-graph
           path: dependencies.png
-
