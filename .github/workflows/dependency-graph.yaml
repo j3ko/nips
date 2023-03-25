@@ -1,5 +1,4 @@
 name: Generate NIP Dependency Tree
-
 on:
   pull_request:
     types: [opened]
