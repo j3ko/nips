@@ -25,8 +25,9 @@ jobs:
             echo "$dependencies"
           done)
 
+          echo "$all_deps"
           # Generate the dependency graph and save as a PNG image
-          echo "$all_deps" | dot -Tpng -Gdpi=300 -o dependencies.png -
+          # echo "$all_deps" | dot -Tpng -Gdpi=300 -o dependencies.png -
 
       - name: Upload dependency graph
         uses: actions/upload-artifact@v2
